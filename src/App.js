@@ -4,7 +4,8 @@ import classNames from 'classnames'
 import Dropzone from 'react-dropzone'
 const electron = window.require('electron');
 const fs = electron.remote.require('fs');
-const ipcRenderer  = electron.ipcRenderer;
+const { ipcRenderer } = window.require('electron')
+
 
 class App extends Component {
 
@@ -17,10 +18,9 @@ class App extends Component {
     }
   }
   componentDidMount() {
-    ipcRenderer.on('checktotal', (filename) => {
-      console.log("filename", filename)
-      this.onDrop(filename);
-     });
+    ipcRenderer.on('asynchronous-reply', (event, arg) => {
+      console.log(arg) // Prints 'whoooooooh!'
+    })
    }
 
   onDrop(filename) {

@@ -1,29 +1,42 @@
 // Modules to control application life and create native browser window
 const {app, BrowserWindow} = require('electron')
 const fetch = require('node-fetch')
-
+const fs = require('fs')
+const { ipcMain } = require('electron')
 let mainWindow
 
 var chokidar = require('chokidar');
 
-function checkFile(file) {
-    var extension = file.substr((file.lastIndexOf('.') +1));
-    if (/(pdf)$/ig.test(extension)) {
-        uploadFile(file)
-    }
+function checkFile(path) {
+  var extension = path.substr((path.lastIndexOf('.') +1));
+  if (/(pdf)$/ig.test(extension)) {
+    
+    uploadFile(path)
+  }
 }
 
-const uploadFile = async (file) => {
-    await fetch('https://fhirtest.uhn.ca/baseDstu3/Binary', { method: 'POST', body: file });
-    findTotalBinary(file)
-}
+const uploadFile = async (pathname) => {
+  
+  const file = await fs.readFile(pathname, 'utf8',async (err, data) => {
+    const response = await fetch(`https://fhirtest.uhn.ca/baseDstu3/Binary`, {
+      method: 'POST',
+      body: data,
+    })
+    console.log("hu", (data))
 
-const findTotalBinary = async (file) => {
+      ipcMain.on('asynchronous-message', (event, arg) => {
+        console.log("hi", arg)
+        ipcMain.send('asynchronous-reply', 'pong')
+      })
+
+  
+})}
+
+
+
+const findTotalBinary = async () => {
     const totalHistory = await fetch("http://hapi.fhir.org/baseDstu3/Binary/_history?_format=json")
     const { total } = await totalHistory.json()
-    const filename = file.replace(/^.*[\\\/]/, '')
-    console.log("what is it?",filename)
-    mainWindow.webContents.send("checktotal" , filename)
 }
 
 
@@ -66,3 +79,10 @@ app.on('activate', function () {
     createWindow()
   }
 })
+
+
+
+
+
+
+
