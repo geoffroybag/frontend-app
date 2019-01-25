@@ -25,11 +25,13 @@ class App extends Component {
 
   componentDidMount() {
     watcher
-      .on('add', path => {
+      .on('add', (path, stats) => {
+        if(stats.size < 2000000){
           this.setState({
               files : path
           });
           this.checkFile(path)
+        }
       })
   }
 
@@ -51,6 +53,7 @@ class App extends Component {
             }
             this.setState({data})
           });
+    console.log(this.state.data)
     await fetch('https://fhirtest.uhn.ca/baseDstu3/Binary', { method: 'POST', body: this.state.data })
           
     this.setState({status : "ok"})
@@ -76,7 +79,7 @@ class App extends Component {
         </header>
 
 
-        <Dropzone onDrop={(oneFile)=>this.onDrop(oneFile)}>
+        <Dropzone onDrop={(oneFile)=>this.onDrop(oneFile)} >
         {({getRootProps, getInputProps, isDragActive}) => {
           return (
             <div
