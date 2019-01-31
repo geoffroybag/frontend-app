@@ -16,6 +16,7 @@ class App extends Component {
     super(props);
     this.state = {
       files: [],
+      path : "",
       totalBinary: 0,
       filename : "", 
       status : "not ok",
@@ -27,35 +28,45 @@ class App extends Component {
     watcher
       .on('add', (path, stats) => {
         if(stats.size < 2000000){
-          this.setState({
-              files : path
-          });
+          this.setState({path});
           this.checkFile(path)
         }
       })
   }
 
+  async onDrop(files){
+    console.log("file dropped")
+    await this.setState({files});
+    console.log("state.files", this.state.files[0].name)
+    this.setState({filename : this.state.files[0].name.replace(/^.*[\\\/]/, '')})
+    this.uploadFile(this.state.files[0])
+  }
+  
   checkFile(path) {
     var extension = path.substr((path.lastIndexOf('.') +1));
     if (/(pdf)$/ig.test(extension)) {
-      
-      this.uploadFile(path)
+      this.convertPathToFile(path)
     }
   }
   
-      
-  async uploadFile(path){
-    this.state.filename = this.state.files.replace(/^.*[\\\/]/, '')
-
-    await fs.readFile(path, async (err, data) => {
-            if (err) {
-                console.error(err);
-            }
-            this.setState({data})
-          });
-    console.log(this.state.data)
-    await fetch('https://fhirtest.uhn.ca/baseDstu3/Binary', { method: 'POST', body: this.state.data })
-          
+  async convertPathToFile(path){
+    await fs.readFile(path, (err, data) => {
+      if (err) {
+        console.error(err);
+      }
+       this.setState({
+        data,
+        filename : this.state.path.replace(/^.*[\\\/]/, '')
+      });
+      console.log('path', this.state.path, 'filename', this.state.filename, 'data', this.state.data)
+    });
+    this.uploadFile(this.state.data)
+  }
+  
+  async uploadFile(file){
+    console.log("uploading file....")
+    const rep = await fetch('https://fhirtest.uhn.ca/baseDstu3/Binary', { method: 'POST', body: this.state.data })
+    console.log("file uploaded!", rep)
     this.setState({status : "ok"})
     this.findTotalBinary()
   }
@@ -63,11 +74,8 @@ class App extends Component {
   async findTotalBinary(){
     const totalHistory = await fetch("http://hapi.fhir.org/baseDstu3/Binary/_history?_format=json")
     const { total } = await totalHistory.json()
-
     this.setState({totalBinary : total})
   }
-
-
 
   render() {
     
