@@ -4,6 +4,8 @@ import classNames from 'classnames'
 import Dropzone from 'react-dropzone'
 const chokidar = window.require('chokidar');
 const fs = window.require('fs');
+const { promisify } = require("util");
+const readFile = promisify(fs.readFile);
 
 var watcher = chokidar.watch(`FHIR`, {
     ignored: /(^|[/\\])\../,
@@ -35,7 +37,7 @@ class App extends Component {
   }
 
   async onDrop(files){
-    console.log("file dropped")
+    // console.log("file dropped")
     await this.setState({files});
     console.log("state.files", this.state.files[0].name)
     this.setState({filename : this.state.files[0].name.replace(/^.*[\\\/]/, '')})
@@ -50,23 +52,20 @@ class App extends Component {
   }
   
   async convertPathToFile(path){
-    await fs.readFile(path, (err, data) => {
-      if (err) {
-        console.error(err);
-      }
+    const data = await readFile(path)
        this.setState({
         data,
         filename : this.state.path.replace(/^.*[\\\/]/, '')
       });
-      console.log('path', this.state.path, 'filename', this.state.filename, 'data', this.state.data)
-    });
+      // console.log('path', this.state.path, 'filename', this.state.filename, 'data', this.state.data)
+    
     this.uploadFile(this.state.data)
   }
   
   async uploadFile(file){
-    console.log("uploading file....")
-    const rep = await fetch('https://fhirtest.uhn.ca/baseDstu3/Binary', { method: 'POST', body: this.state.data })
-    console.log("file uploaded!", rep)
+    // console.log("uploading file....")
+    const rep = await fetch('https://fhirtest.uhn.ca/baseDstu3/Binary', { method: 'POST', body: file })
+    // console.log("file uploaded!", rep)
     this.setState({status : "ok"})
     this.findTotalBinary()
   }
@@ -80,39 +79,36 @@ class App extends Component {
   render() {
     
     const {status, totalBinary, filename}= this.state
+
     return (
       <div className="App">
         <header className="App-header">
         Lifen Frontend Test
         </header>
+          <Dropzone onDrop={(oneFile)=>this.onDrop(oneFile)} >
+          {({getRootProps, getInputProps, isDragActive}) => {
+            return (
+              <div
+                {...getRootProps()}
+                className={classNames('dropzone', {'dropzone--isActive': isDragActive})}
+              >
+                <input {...getInputProps()} />
+                {
+                  isDragActive ?
+                    <p>Drop files here...</p> :
+                    <p>Try dropping some files here, or click to select files to upload.</p>
+                }
+              </div>
+            )
+          }}
+        </Dropzone>
 
-
-        <Dropzone onDrop={(oneFile)=>this.onDrop(oneFile)} >
-        {({getRootProps, getInputProps, isDragActive}) => {
-          return (
-            <div
-              {...getRootProps()}
-              className={classNames('dropzone', {'dropzone--isActive': isDragActive})}
-            >
-              <input {...getInputProps()} />
-              {
-                isDragActive ?
-                  <p>Drop files here...</p> :
-                  <p>Try dropping some files here, or click to select files to upload.</p>
-              }
-            </div>
-          )
-        }}
-      </Dropzone>
-
-      <div>
-          <h4>File</h4>
-          <p>{filename}</p>
-          <p>Status : {status}</p>
-          <h4>Total number of files uploaded :</h4>
-          <p>{totalBinary}</p>
-
-          
+        <div>
+            <h4>File</h4>
+            <p>{filename}</p>
+            <p>Status : {status}</p>
+            <h4>Total number of files uploaded :</h4>
+            <p>{totalBinary}</p>
         </div>
 
       </div>
